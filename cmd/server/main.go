@@ -41,12 +41,14 @@ func main() {
 		panic(err)
 	}
 
-	// key := routing.GameLogSlug + ".*"
-	// _, _, err = pubsub.DeclareAndBind(connection, routing.ExchangePerilTopic, routing.GameLogSlug, key, pubsub.Durable)
-
-	if err != nil {
-		panic(err)
-	}
+	go func() {
+		handler := logHandler()
+		key := routing.GameLogSlug + ".*"
+		err := pubsub.SubscribeGob(connection, routing.ExchangePerilTopic, routing.GameLogSlug, key, pubsub.Durable, handler)
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	gamelogic.PrintServerHelp()
 
@@ -91,4 +93,12 @@ func main() {
 		}
 	}
 
+}
+
+func logHandler() func(routing.GameLog) pubsub.AckType {
+	return func(gl routing.GameLog) pubsub.AckType {
+		defer fmt.Print(">")
+		gamelogic.WriteLog(gl)
+		return pubsub.Ack
+	}
 }
